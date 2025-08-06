@@ -10,7 +10,7 @@ public class SchedulerConfig {
     @Bean
     public ThreadPoolTaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
-        taskScheduler.setPoolSize(10); // can be changed
+        taskScheduler.setPoolSize(10); // can be changed later
         taskScheduler.setThreadNamePrefix("event-scheduler-");
         taskScheduler.initialize();
         return taskScheduler;

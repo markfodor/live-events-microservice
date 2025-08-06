@@ -1,8 +1,7 @@
-package org.demoproject.service;
+package org.demoproject.integration;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.RecordTooLargeException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
@@ -17,16 +16,12 @@ import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest
 @DirtiesContext
@@ -35,11 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         topics = {"sports-events", "sports-events-dlt"},
         bootstrapServersProperty = "app.kafka.bootstrap-servers"
 )
-@TestPropertySource(properties = {
-        "app.kafka.consumer.max-retries=2",
-        "app.kafka.consumer.retry-backoff-ms=100"
-})
-class KafkaDeadLetterIntegrationTest {
+class KafkaMessagingIntegrationTest {
+    public static final String SPORTS_EVENTS_TOPIC = "sports-events";
 
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -47,12 +39,12 @@ class KafkaDeadLetterIntegrationTest {
     @Autowired
     private EmbeddedKafkaBroker embeddedKafkaBroker;
 
-    private Consumer<String, String> dltConsumer;
+    private Consumer<String, String> consumer;
 
     @BeforeEach
     void setUp() {
         var consumerProps = KafkaTestUtils.consumerProps(
-                "dlt-test-group",
+                "test-group",
                 "true",
                 embeddedKafkaBroker
         );
@@ -61,45 +53,50 @@ class KafkaDeadLetterIntegrationTest {
         consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         var consumerFactory = new DefaultKafkaConsumerFactory<String, String>(consumerProps);
-        dltConsumer = consumerFactory.createConsumer();
-        dltConsumer.subscribe(List.of("sports-events-dlt"));
+        consumer = consumerFactory.createConsumer();
+        consumer.subscribe(List.of(SPORTS_EVENTS_TOPIC));
     }
 
     @AfterEach
     void tearDown() {
-        if (dltConsumer != null) {
-            dltConsumer.close();
+        if (consumer != null) {
+            consumer.close();
         }
     }
 
     @Test
-    void testMessageReachesDeadLetterTopicAfterProcessingFailure() {
+    void testMessageProcessingFailure() {
         String failingMessage = "asd".repeat(1000000);
-        var topic = "sports-events";
-
         SendResult<String, String> result = null;
+
         try {
-            result = kafkaTemplate.send(topic, failingMessage).get(5, TimeUnit.SECONDS);
+            result = kafkaTemplate.send(SPORTS_EVENTS_TOPIC, failingMessage).get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             assertThat(e.getCause()).isInstanceOf(RecordTooLargeException.class);
         }
 
         assertThat(result).isNull();
-
     }
 
     @Test
     void testSuccessfulMessage() throws Exception {
-        // Given - A message that will succeed
         var successMessage = "1:1";
-        var topic = "sports-events";
 
-        // When
-        kafkaTemplate.send(topic, successMessage).get(5, TimeUnit.SECONDS);
+        kafkaTemplate.send(SPORTS_EVENTS_TOPIC, successMessage).get(5, TimeUnit.SECONDS);
 
-        // Then - Verify no message in DLT
-        var dltRecords = KafkaTestUtils.getRecords(dltConsumer, Duration.ofSeconds(2));
-        assertThat(dltRecords.isEmpty()).isTrue();
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(2));
+        assertThat(records).isNotEmpty();
+    }
+
+    @Test
+    void testTopicCorrectness() throws Exception {
+        String message = "1:1";
+        String fakeTopic = "fake_topic";
+
+        kafkaTemplate.send(fakeTopic, message).get(5, TimeUnit.SECONDS);
+
+        var records = KafkaTestUtils.getRecords(consumer, Duration.ofSeconds(2));
+        assertThat(records).isEmpty();
     }
 }
 

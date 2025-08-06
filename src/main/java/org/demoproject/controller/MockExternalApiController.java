@@ -12,7 +12,7 @@ import java.util.Random;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/mock")
+@RequestMapping("/api/v1/mock")
 public class MockExternalApiController {
 
     private final Random random = new Random();

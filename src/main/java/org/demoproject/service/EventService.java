@@ -16,6 +16,7 @@ import java.util.concurrent.ScheduledFuture;
 @Slf4j
 @Service
 public class EventService {
+    public static final int SCHEDULED_TASK_PERIOD_IN_SECONDS = 10;
     private final ThreadPoolTaskScheduler taskScheduler;
     private final ConcurrentMap<Long, ScheduledFuture<?>> eventSchedulers;
     private final ExternalApiService externalApiService;
@@ -51,7 +52,7 @@ public class EventService {
 
         ScheduledFuture<?> task = taskScheduler.scheduleAtFixedRate(
                 () -> handleEvent(eventId),
-                Duration.ofSeconds(10)
+                Duration.ofSeconds(SCHEDULED_TASK_PERIOD_IN_SECONDS)
         );
 
         eventSchedulers.put(eventId, task);

@@ -13,8 +13,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.util.concurrent.CompletableFuture;
 
-// OK
 class ScorePublisherServiceTest {
+    private final static String TEST_TOPIC = "test-topic";
 
     @Mock
     private KafkaTemplate<String, String> kafkaTemplate;
@@ -24,7 +24,7 @@ class ScorePublisherServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        scorePublisherService = new ScorePublisherService(kafkaTemplate, "test-topic");
+        scorePublisherService = new ScorePublisherService(kafkaTemplate, TEST_TOPIC);
     }
 
     @Test
@@ -38,21 +38,19 @@ class ScorePublisherServiceTest {
 
         scorePublisherService.publishEventResult(eventId, result);
 
-        verify(kafkaTemplate).send("test-topic", "42", result);
+        verify(kafkaTemplate).send(TEST_TOPIC, "42", result);
     }
 
     @Test
     void testKafkaSendFailure() {
         Long eventId = 42L;
         String result = "2:1";
-
         CompletableFuture<SendResult<String, String>> failedFuture = new CompletableFuture<>();
         failedFuture.completeExceptionally(new RuntimeException("Simulated failure"));
 
         when(kafkaTemplate.send(anyString(), anyString(), anyString())).thenReturn(failedFuture);
-
         scorePublisherService.publishEventResult(eventId, result);
 
-        verify(kafkaTemplate).send("test-topic", "42", result);
+        verify(kafkaTemplate).send(TEST_TOPIC, "42", result);
     }
 }

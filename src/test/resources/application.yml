@@ -12,11 +12,6 @@ app:
       acks: "1"
       retries: 3
       retry-backoff-ms: 1000
-    consumer:
-      group-id: sports-events-consumer-group
-      dlt-group-id: dlt-handler-group
-      retry-backoff-ms: 1000
-      max-retries: 3
 
 external-api:
   url: https://mock.server/events

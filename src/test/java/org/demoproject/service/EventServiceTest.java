@@ -16,13 +16,12 @@ import java.util.concurrent.ScheduledFuture;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-// OK
 @ExtendWith(MockitoExtension.class)
 class EventServiceTest {
 
@@ -44,8 +43,7 @@ class EventServiceTest {
         final String scores = "1:1";
         final Event liveEvent = new Event(eventId, EventStatus.LIVE);
         final ScheduledFuture<?> mockScheduledFuture = mock(ScheduledFuture.class);
-        final ExternalApiResponse mockApiResponse = mock(ExternalApiResponse.class);
-        when(mockApiResponse.currentScore()).thenReturn(scores);
+        final ExternalApiResponse mockApiResponse = new ExternalApiResponse(eventId, scores);
 
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(0);
@@ -60,6 +58,29 @@ class EventServiceTest {
         eventService.addEvent(liveEvent);
 
         verify(externalApiService).fetchEventScores(eq(eventId));
+        verify(scorePublisherService).publishEventResult(eq(eventId), eq(scores));
+    }
+
+    @Test
+    void testThatScorePublisherServiceNeverCalledWhenExternalApiServiceThrowsException() {
+        final Long eventId = 123L;
+        final Event liveEvent = new Event(eventId, EventStatus.LIVE);
+        final ScheduledFuture<?> mockScheduledFuture = mock(ScheduledFuture.class);
+
+        doAnswer(invocation -> {
+            Runnable task = invocation.getArgument(0);
+            task.run();
+            return mockScheduledFuture;
+        }).when(taskScheduler).scheduleAtFixedRate(any(Runnable.class), any(Duration.class));
+
+        doThrow(RuntimeException.class)
+                .when(externalApiService)
+                .fetchEventScores(eq(eventId));
+
+        eventService.addEvent(liveEvent);
+
+        verify(externalApiService).fetchEventScores(eq(eventId));
+        verify(scorePublisherService, never()).publishEventResult(any(), any());
     }
 
     @Test
@@ -91,6 +112,4 @@ class EventServiceTest {
 
         verify(mockScheduledFuture).cancel(false);
     }
-
-
 }
