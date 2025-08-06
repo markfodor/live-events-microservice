@@ -4,7 +4,7 @@
     <module name="live-events-microservice.main" />
     <extension name="coverage">
       <pattern>
-        <option name="PATTERN" value="org.demoproject.*" />
+        <option name="PATTERN" value="org.demoproject.config.*" />
         <option name="ENABLED" value="true" />
       </pattern>
     </extension>

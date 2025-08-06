@@ -1,4 +1,4 @@
-package org.demoproject.service;
+package org.demoproject.config;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -85,6 +85,6 @@ class KafkaConfigIntegrationTest {
 
     @DynamicPropertySource
     static void configureKafka(DynamicPropertyRegistry registry) {
-        registry.add("app.kafka.bootstrap-servers", () -> "localhost:9092");
+        registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9092");
     }
 }

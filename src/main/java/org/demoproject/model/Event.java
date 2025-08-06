@@ -1,4 +1,4 @@
-package org.demoproject.dto;
+package org.demoproject.model;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -11,4 +11,5 @@ public record Event(
 
         @NotNull(message = "Event status is required")
         EventStatus status
-) {}
+) {
+}

@@ -2,9 +2,9 @@ package org.demoproject.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public record EventApiResponse(
+public record ExternalApiResponse(
         @JsonProperty("eventId")
-        String eventId,
+        Long eventId,
 
         @JsonProperty("currentScore")
         String currentScore

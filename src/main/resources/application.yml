@@ -1,0 +1,25 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  kafka:
+    topic: sports-events
+    dlt: sports-events-dlt
+    bootstrap-servers: localhost:9092
+    producer:
+      acks: "all"
+      retries: 3
+      retry-backoff-ms: 1000
+    consumer:
+      group-id: sports-events-consumer-group
+      dlt-group-id: dlt-handler-group
+      retry-backoff-ms: 1000
+      max-retries: 3
+
+external-api:
+  url: http://localhost:8080//api/mock/events
+#  you can use this public url for testing different timeouts -> Postman tends to fail every x reqs
+#  url: https://3aed67d8-f1a8-4962-992c-5a778d4d39c3.mock.pstmn.io/events

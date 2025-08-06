@@ -1,4 +1,4 @@
-package org.demoproject.dto;
+package org.demoproject.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

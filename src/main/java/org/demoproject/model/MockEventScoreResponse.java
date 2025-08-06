@@ -1,4 +1,4 @@
 package org.demoproject.model;
 
-public class EventScoreResponse {
+public record MockEventScoreResponse(String eventId, String currentScore) {
 }

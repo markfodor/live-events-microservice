@@ -2,8 +2,9 @@ package org.demoproject.service;
 
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.demoproject.dto.Event;
-import org.demoproject.dto.EventStatus;
+import org.demoproject.model.Event;
+import org.demoproject.model.EventStatus;
+import org.demoproject.model.ExternalApiResponse;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
@@ -17,27 +18,31 @@ import java.util.concurrent.ScheduledFuture;
 public class EventService {
     private final ThreadPoolTaskScheduler taskScheduler;
     private final ConcurrentMap<Long, ScheduledFuture<?>> eventSchedulers;
+    private final ExternalApiService externalApiService;
+    private final ScorePublisherService scorePublisherService;
 
-    public EventService(ThreadPoolTaskScheduler taskScheduler) {
+    public EventService(final ThreadPoolTaskScheduler taskScheduler, final ExternalApiService externalApiService,
+                        final ScorePublisherService scorePublisherService) {
         this.taskScheduler = taskScheduler;
+        this.externalApiService = externalApiService;
+        this.scorePublisherService = scorePublisherService;
         this.eventSchedulers = new ConcurrentHashMap<>();
     }
 
-    public void addEvent(Event event) {
+    public void addEvent(final Event event) {
         log.info("Received SchedulingEvent for event ID: {} with status: {}",
-                event.getEventId(), event.getStatus().getText());
+                event.eventId(), event.status().getText());
 
-        if (event.getStatus() == EventStatus.LIVE) {
-            startSchedulerForEvent(event.getEventId());
-        } else if (event.getStatus() == EventStatus.NOT_LIVE) {
-            stopSchedulerForEvent(event.getEventId());
+        if (event.status() == EventStatus.LIVE) {
+            startSchedulerForEvent(event.eventId());
+        } else if (event.status() == EventStatus.NOT_LIVE) {
+            stopSchedulerForEvent(event.eventId());
         }
 
         log.info("Current active schedulers: {}, Event IDs: {}", eventSchedulers.size(), eventSchedulers.keySet());
     }
 
-    private void startSchedulerForEvent(Long eventId) {
-        // TODO Use putIfAbsent for atomic check-and-set
+    private void startSchedulerForEvent(final Long eventId) {
         ScheduledFuture<?> existingTask = eventSchedulers.get(eventId);
         if (existingTask != null && !existingTask.isCancelled()) {
             log.info("Scheduler for event ID {} is already running", eventId);
@@ -45,7 +50,7 @@ public class EventService {
         }
 
         ScheduledFuture<?> task = taskScheduler.scheduleAtFixedRate(
-                () -> processDataForEvent(eventId),
+                () -> handleEvent(eventId),
                 Duration.ofSeconds(10)
         );
 
@@ -54,7 +59,7 @@ public class EventService {
                 eventId, eventSchedulers.size());
     }
 
-    private void stopSchedulerForEvent(Long eventId) {
+    private void stopSchedulerForEvent(final Long eventId) {
         ScheduledFuture<?> task = eventSchedulers.remove(eventId);
 
         if (task != null && !task.isCancelled()) {
@@ -64,14 +69,30 @@ public class EventService {
         }
     }
 
-    private void processDataForEvent(Long eventId) {
+    private void handleEvent(final Long eventId) {
         String threadName = Thread.currentThread().getName();
-        long threadId = Thread.currentThread().threadId();
+        log.info("Processing data for event ID: {} on thread: {}",
+                eventId, threadName);
 
-        log.info("Processing data for event ID: {} on thread: {} (ID: {})",
-                eventId, threadName, threadId);
+        final ExternalApiResponse response = fetchExternalApiResponse(eventId);
+        if (response != null) {
+            scorePublisherService.publishEventResult(response.eventId(), response.currentScore());
+        }
     }
 
+    private ExternalApiResponse fetchExternalApiResponse(final Long eventId) {
+        ExternalApiResponse response = null;
+
+        try {
+            response = externalApiService.fetchEventScores(eventId);
+        } catch (final Exception exception) { // can be improved later
+            log.error("Error occurred while fetching score data.", exception);
+        }
+
+        return response;
+    }
+
+    // graceful shutdown
     @PreDestroy
     public void shutdown() {
         eventSchedulers.values().forEach(task -> {

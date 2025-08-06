@@ -10,12 +10,12 @@ import java.time.Duration;
 
 @Configuration
 @EnableRetry
-public class RestTemplateConfig {
+public class ExternalApiRestTemplateConfig {
 
     @Bean
     public RestOperations restTemplate(RestTemplateBuilder builder) {
         return builder
-                .connectTimeout(Duration.ofSeconds(5))
+                .connectTimeout(Duration.ofSeconds(7))
                 .readTimeout(Duration.ofSeconds(5))
                 .build();
     }
