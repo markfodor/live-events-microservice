@@ -4,11 +4,10 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.demoproject.model.Event;
 import org.demoproject.service.EventService;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -23,10 +22,10 @@ public class EventController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createNote(@Valid @RequestBody Event event) {
+    public ResponseEntity<Void> createNote(@Valid @RequestBody Event event) {
         log.info("Event arrived with '{}' id and status '{}'", event.eventId(), event.status().getText());
         eventService.addEvent(event);
+        return ResponseEntity.accepted().build();
     }
 }
 

@@ -34,9 +34,9 @@ public class EventService {
         log.info("Received SchedulingEvent for event ID: {} with status: {}",
                 event.eventId(), event.status().getText());
 
-        if (event.status() == EventStatus.LIVE) {
+        if (event.status().equals(EventStatus.LIVE)) {
             startSchedulerForEvent(event.eventId());
-        } else if (event.status() == EventStatus.NOT_LIVE) {
+        } else if (event.status().equals(EventStatus.NOT_LIVE)) {
             stopSchedulerForEvent(event.eventId());
         }
 

@@ -25,6 +25,7 @@ public class ExternalApiService {
         this.apiUrl = apiUrl;
     }
 
+    // can add listener later to log the attempt numbers
     @Retryable(
             retryFor = {
                     ResourceAccessException.class,
